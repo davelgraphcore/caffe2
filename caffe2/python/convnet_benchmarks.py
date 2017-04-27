@@ -61,6 +61,25 @@ pass.
 import argparse
 
 from caffe2.python import cnn, workspace
+import caffe2.python.models.resnet as resnet
+
+def ResNet50(order, cudnn_ws):
+    model = cnn.CNNModelHelper(
+        order, name="resnet50",
+        use_cudnn=True, cudnn_exhaustive_search=True,
+        ws_nbytes_limit=cudnn_ws)
+    pred = resnet.create_resnet50(model, "data", 3, 1000,
+                                  label=None,
+                                  is_test=False,
+                                  no_loss=False,
+                                  no_bias=0,
+                                  conv1_kernel=7,
+                                  conv1_stride=2,
+                                  final_avg_kernel=7,
+                                  spatial_batch_norm=False)
+    xent = model.LabelCrossEntropy([pred, "label"], "xent")
+    loss = model.AveragedLoss(xent, "loss")
+    return model, 224
 
 
 def MLP(order, cudnn_ws):
@@ -658,5 +677,6 @@ if __name__ == '__main__':
             'VGGA': VGGA,
             'Inception': Inception,
             'MLP': MLP,
+            'ResNet50': ResNet50,
         }
         Benchmark(model_map[args.model], args)
